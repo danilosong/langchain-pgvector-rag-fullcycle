@@ -1,0 +1,27 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=langchain
+      - POSTGRES_PASSWORD=langchain
+      - POSTGRES_DB=langchain
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  app:
+    build: .
+    volumes:
+      - .:/app
+    environment:
+      - POSTGRES_CONNECTION=postgresql+psycopg://langchain:langchain@db:5432/langchain
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+    depends_on:
+      - db
+    # Keep container running for exec/run commands if needed, or run as one-off
+    command: tail -f /dev/null 
+
+volumes:
+  pgdata:
