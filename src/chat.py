@@ -1,8 +1,14 @@
+import sys
 import os
+
+# Add project root to sys.path to allow running script directly
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from langchain_openai import ChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import PromptTemplate
 from dotenv import load_dotenv
+
 from src.search import search
 
 load_dotenv()
@@ -78,8 +84,15 @@ def chat_loop():
                 response = chain.invoke({"context": context, "question": user_input})
                 print(f"\nRESPOSTA: {response.content}")
             except Exception as llm_error:
-                print(f"\nErro na chamada da LLM: {llm_error}")
-                print("Verifique se o modelo solicitado está disponível e se a API Key está correta.")
+                err_str = str(llm_error)
+                if "insufficient_quota" in err_str or "429" in err_str:
+                    print("\n[ERRO] Cota excedida (OpenAI/Gemini). Verifique seus créditos/limites.")
+                elif "ResourceExhausted" in err_str:
+                    print("\n[ERRO] Cota do Gemini excedida (ResourceExhausted).")
+                elif "invalid_api_key" in err_str or "401" in err_str or "InvalidArgument" in err_str:
+                    print("\n[ERRO] API Key inválida ou mal formatada.")
+                else:
+                    print(f"\nErro na chamada da LLM: {llm_error}")
             
         except KeyboardInterrupt:
             print("\nEncerrando...")

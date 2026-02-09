@@ -1,0 +1,4 @@
+.env
+venv
+document.pdf
+src/__pycache__/

@@ -28,6 +28,7 @@ Este projeto implementa um sistema de RAG (Retrieval-Augmented Generation) que i
 
 1. **Crie e ative um ambiente virtual:**
    ```bash
+   apt install python3.13-venv
    python3 -m venv venv
    source venv/bin/activate
    ```
@@ -56,8 +57,12 @@ Este projeto implementa um sistema de RAG (Retrieval-Augmented Generation) que i
 
 Conforme os requisitos do projeto, a execução dos scripts Python é feita localmente:
 
-1. **Adicione um PDF:**
-   Coloque o arquivo `document.pdf` na raiz.
+1. **Crie ou Adicione um PDF:**
+   Você pode gerar um PDF de exemplo com o script fornecido:
+   ```bash
+   python create_sample_pdf.py
+   ```
+   Ou coloque seu próprio arquivo como `document.pdf` na raiz.
 
 2. **Execute a Ingestão:**
    Isso lerá o PDF, criará os embeddings e salvará no Postgres.

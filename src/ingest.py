@@ -19,8 +19,9 @@ def ensure_vector_extension():
     """Ensures the vector extension exists in the database."""
     try:
         # Connect to default database to create extension if needed
-        # Note: In a real production setup, this requires superuser or correct permissions
-        conn = psycopg.connect(DB_CONNECTION)
+        # psycopg.connect expects 'postgresql://' not 'postgresql+psycopg://'
+        start_u = DB_CONNECTION.replace("+psycopg", "")
+        conn = psycopg.connect(start_u)
         conn.autocommit = True
         with conn.cursor() as cur:
             cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
@@ -56,17 +57,43 @@ def ingest(file_path: str):
     print(f"Created {len(splits)} chunks.")
 
     print("Generating embeddings and storing in PGVector...")
-    embeddings = get_embeddings()
-    
-    # Store documents
-    PGVector.from_documents(
-        documents=splits,
-        embedding=embeddings,
-        collection_name=COLLECTION_NAME,
-        connection=DB_CONNECTION,
-        use_jsonb=True,
-    )
-    print("Ingestion complete!")
+    try:
+        embeddings = get_embeddings()
+        
+        # Store documents
+        PGVector.from_documents(
+            documents=splits,
+            embedding=embeddings,
+            collection_name=COLLECTION_NAME,
+            connection=DB_CONNECTION,
+            use_jsonb=True,
+        )
+        print("Ingestion complete!")
+    except Exception as e:
+        error_msg = str(e)
+        # OpenAI Errors
+        if "insufficient_quota" in error_msg or "429" in error_msg:
+            print("\n" + "="*50)
+            print("ERRO DE COTA (OPENAI/GEMINI):")
+            print("Sua API Key está sem créditos ou excedeu o limite de requisições.")
+            print("Solução: Verifique sua conta na OpenAI ou Google Cloud.")
+            print("="*50 + "\n")
+        # Gemini Errors (ResourceExhausted is common for free tier limits)
+        elif "ResourceExhausted" in error_msg:
+            print("\n" + "="*50)
+            print("ERRO DE COTA (GEMINI):")
+            print("Limite de requisições excedido (ResourceExhausted).")
+            print("Solução: Aguarde alguns instantes ou verifique sua cota na Google AI Studio.")
+            print("="*50 + "\n")
+        # Auth Errors
+        elif "invalid_api_key" in error_msg or "401" in error_msg or "403" in error_msg or "InvalidArgument" in error_msg:
+            print("\n" + "="*50)
+            print("ERRO DE AUTENTICAÇÃO:")
+            print("Sua API Key parece inválida ou sem permissão.")
+            print("Solução: Verifique o arquivo .env e sua chave.")
+            print("="*50 + "\n")
+        else:
+            print(f"\nErro inesperado durante a ingestão: {e}")
 
 if __name__ == "__main__":
     if not os.path.exists("document.pdf"):
